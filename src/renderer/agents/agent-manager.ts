@@ -19,7 +19,7 @@ export class AgentManager {
       this.agents.set(id, { id, config, state: 'idle' });
     }
 
-    window.electronAPI.onAgentEvent((event) => {
+    window.electronAPI?.onAgentEvent((event) => {
       this.handleEvent(event.agent, event.event as 'start' | 'complete');
     });
   }

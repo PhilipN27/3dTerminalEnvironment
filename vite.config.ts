@@ -16,6 +16,17 @@ export default defineConfig({
           },
         },
       },
+      {
+        entry: 'src/preload/preload.ts',
+        onstart({ reload }) {
+          reload();
+        },
+        vite: {
+          build: {
+            outDir: 'dist/preload',
+          },
+        },
+      },
     ]),
     renderer(),
   ],

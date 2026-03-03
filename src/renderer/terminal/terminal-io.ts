@@ -11,19 +11,27 @@ declare global {
 }
 
 export class TerminalIO {
+  private get api() {
+    return window.electronAPI;
+  }
+
   onOutput(callback: (data: string) => void) {
-    window.electronAPI.onShellOutput(callback);
+    this.api?.onShellOutput(callback);
   }
 
   sendInput(data: string) {
-    window.electronAPI.sendShellInput(data);
+    this.api?.sendShellInput(data);
   }
 
   resize(cols: number, rows: number) {
-    window.electronAPI.resizeShell(cols, rows);
+    this.api?.resizeShell(cols, rows);
   }
 
   switchShell(shell: string) {
-    window.electronAPI.switchShell(shell);
+    this.api?.switchShell(shell);
+  }
+
+  onAgentEvent(callback: (event: { agent: string; event: string }) => void) {
+    this.api?.onAgentEvent(callback);
   }
 }
