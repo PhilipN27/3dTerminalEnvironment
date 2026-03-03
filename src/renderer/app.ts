@@ -9,6 +9,7 @@ import { Robot } from './agents/robot-loader';
 import { Workstation } from './agents/workstation';
 import { AGENT_MAP } from '../shared/agent-config';
 import { CameraPreset } from '../shared/types';
+import { Overlay } from './ui/overlay';
 
 // Scene
 const container = document.getElementById('scene-container')!;
@@ -77,3 +78,5 @@ sceneManager.onAnimate((delta) => {
 
 // Auto-focus terminal
 terminalMesh.focus();
+
+new Overlay(agentManager, cameraController, terminalIO);
