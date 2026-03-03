@@ -6,7 +6,7 @@ export class SceneManager {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
-  private clock: THREE.Clock;
+  private lastTime = 0;
   private composer: EffectComposer;
   private animationCallbacks: ((delta: number) => void)[] = [];
 
@@ -33,10 +33,10 @@ export class SceneManager {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     container.appendChild(this.renderer.domElement);
 
-    this.clock = new THREE.Clock();
+    this.lastTime = performance.now();
 
     setupLighting(this.scene);
 
@@ -80,7 +80,9 @@ export class SceneManager {
 
   private animate() {
     requestAnimationFrame(() => this.animate());
-    const delta = this.clock.getDelta();
+    const now = performance.now();
+    const delta = (now - this.lastTime) / 1000;
+    this.lastTime = now;
     for (const cb of this.animationCallbacks) {
       cb(delta);
     }
