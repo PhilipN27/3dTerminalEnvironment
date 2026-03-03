@@ -1,16 +1,31 @@
 import { BrowserWindow, ipcMain } from 'electron';
-import { IPC } from '../shared/types';
+import { IPC, ShellType } from '../shared/types';
+import { ShellManager } from './shell-manager';
 
 export function setupIpcHandlers(mainWindow: BrowserWindow) {
-  ipcMain.on(IPC.SHELL_INPUT, (_event, data: { input: string }) => {
-    console.log('Shell input received:', data.input);
+  const shellManager = new ShellManager();
+
+  shellManager.onData((data) => {
+    mainWindow.webContents.send(IPC.SHELL_OUTPUT, data);
   });
 
-  ipcMain.on(IPC.SHELL_SWITCH, (_event, data: { shell: string }) => {
-    console.log('Shell switch requested:', data.shell);
+  shellManager.start('powershell');
+
+  ipcMain.on(IPC.SHELL_INPUT, (_event, data: { input: string }) => {
+    shellManager.write(data.input);
+  });
+
+  ipcMain.on(IPC.SHELL_SWITCH, (_event, data: { shell: ShellType }) => {
+    shellManager.start(data.shell);
   });
 
   ipcMain.on(IPC.SHELL_RESIZE, (_event, data: { cols: number; rows: number }) => {
-    console.log('Shell resize:', data.cols, data.rows);
+    shellManager.resize(data.cols, data.rows);
   });
+
+  mainWindow.on('closed', () => {
+    shellManager.dispose();
+  });
+
+  return shellManager;
 }
