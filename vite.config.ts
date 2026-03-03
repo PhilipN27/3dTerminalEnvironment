@@ -10,12 +10,16 @@ export default defineConfig({
         vite: {
           build: {
             outDir: 'dist/main',
+            rollupOptions: {
+              external: ['node-pty'],
+            },
           },
         },
       },
     ]),
     renderer(),
   ],
+  publicDir: 'assets',
   build: {
     outDir: 'dist/renderer',
   },

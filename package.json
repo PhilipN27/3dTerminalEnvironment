@@ -36,6 +36,7 @@
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.3",
+    "@types/three": "^0.183.1",
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
     "typescript": "^5.9.3",

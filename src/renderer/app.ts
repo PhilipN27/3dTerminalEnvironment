@@ -54,6 +54,9 @@ for (const [id, config] of Object.entries(AGENT_MAP)) {
   robots.set(id, robot);
   sceneManager.scene.add(robot.group);
 
+  // Load GLB model (falls back to placeholder on failure)
+  robot.loadModel(config.modelPath);
+
   const workstation = new Workstation(pos, config.color);
   workstations.set(id, workstation);
   sceneManager.scene.add(workstation.group);

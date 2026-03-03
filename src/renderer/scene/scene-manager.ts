@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { EffectComposer, RenderPass, BloomEffect, ChromaticAberrationEffect, VignetteEffect, EffectPass } from 'postprocessing';
 import { setupLighting } from './lighting';
 
 export class SceneManager {
@@ -6,6 +7,7 @@ export class SceneManager {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   private clock: THREE.Clock;
+  private composer: EffectComposer;
   private animationCallbacks: ((delta: number) => void)[] = [];
 
   constructor(container: HTMLElement) {
@@ -23,7 +25,7 @@ export class SceneManager {
     this.camera.lookAt(0, 2, 0);
 
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: false, // Disabled — postprocessing handles AA
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(container.clientWidth, container.clientHeight);
@@ -38,10 +40,35 @@ export class SceneManager {
 
     setupLighting(this.scene);
 
+    // Post-processing pipeline
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    const bloom = new BloomEffect({
+      intensity: 0.8,
+      luminanceThreshold: 0.6,
+      luminanceSmoothing: 0.3,
+      mipmapBlur: true,
+    });
+
+    const chromaticAberration = new ChromaticAberrationEffect({
+      offset: new THREE.Vector2(0.0008, 0.0008),
+      radialModulation: false,
+      modulationOffset: 0.15,
+    });
+
+    const vignette = new VignetteEffect({
+      darkness: 0.5,
+      offset: 0.3,
+    });
+
+    this.composer.addPass(new EffectPass(this.camera, bloom, chromaticAberration, vignette));
+
     window.addEventListener('resize', () => {
       this.camera.aspect = container.clientWidth / container.clientHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(container.clientWidth, container.clientHeight);
+      this.composer.setSize(container.clientWidth, container.clientHeight);
     });
 
     this.animate();
@@ -57,6 +84,6 @@ export class SceneManager {
     for (const cb of this.animationCallbacks) {
       cb(delta);
     }
-    this.renderer.render(this.scene, this.camera);
+    this.composer.render(delta);
   }
 }
