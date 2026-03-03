@@ -10,6 +10,7 @@ import { Workstation } from './agents/workstation';
 import { AGENT_MAP } from '../shared/agent-config';
 import { CameraPreset } from '../shared/types';
 import { Overlay } from './ui/overlay';
+import { CityBackdrop } from './scene/city-backdrop';
 
 // Scene
 const container = document.getElementById('scene-container')!;
@@ -18,6 +19,10 @@ const sceneManager = new SceneManager(container);
 // Workshop
 const workshop = new Workshop();
 sceneManager.scene.add(workshop.group);
+
+// City backdrop
+const city = new CityBackdrop();
+sceneManager.scene.add(city.group);
 
 // Camera
 const cameraController = new CameraController(sceneManager.camera);
@@ -71,6 +76,7 @@ agentManager.onStateChange((agentId, state) => {
 sceneManager.onAnimate((delta) => {
   cameraController.update(delta);
   terminalMesh.update();
+  city.update(delta);
   for (const robot of robots.values()) {
     robot.update(delta);
   }
