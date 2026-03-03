@@ -1,8 +1,10 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { setupIpcHandlers } from './ipc-handlers';
+import { HookServer } from './hook-server';
 
 let mainWindow: BrowserWindow | null = null;
+let hookServer: HookServer | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -25,6 +27,15 @@ function createWindow() {
   }
 
   setupIpcHandlers(mainWindow);
+
+  hookServer = new HookServer(mainWindow);
+  hookServer.start();
+
+  mainWindow.on('closed', () => {
+    hookServer?.stop();
+    hookServer = null;
+    mainWindow = null;
+  });
 }
 
 app.whenReady().then(createWindow);
