@@ -1,0 +1,14 @@
+appId: com.3dterminal.app
+productName: 3D Terminal Environment
+directories:
+  output: release
+win:
+  target: nsis
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+files:
+  - dist/**/*
+  - assets/**/*
+  - node_modules/**/*
