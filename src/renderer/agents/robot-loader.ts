@@ -11,7 +11,8 @@ export class Robot {
   private baseY: number;
   private modelLoaded = false;
   private mixer: THREE.AnimationMixer | null = null;
-  private animations: Record<string, THREE.AnimationAction> = {};
+  private animationActions: { idle?: THREE.AnimationAction; active?: THREE.AnimationAction; complete?: THREE.AnimationAction } = {};
+  private currentAction: THREE.AnimationAction | null = null;
   private accentColor: string;
 
   // Placeholder parts (used until GLB loads)
@@ -124,16 +125,18 @@ export class Robot {
       this.group.add(model);
       this.modelLoaded = true;
 
-      // Setup animation mixer if model has animations
+      // Setup animation mixer — map by index: 0=idle, 1=active, 2=complete
       if (gltf.animations.length > 0) {
         this.mixer = new THREE.AnimationMixer(model);
-        for (const clip of gltf.animations) {
-          this.animations[clip.name] = this.mixer.clipAction(clip);
+        const stateNames: (keyof typeof this.animationActions)[] = ['idle', 'active', 'complete'];
+        for (let i = 0; i < gltf.animations.length && i < 3; i++) {
+          const action = this.mixer.clipAction(gltf.animations[i]);
+          this.animationActions[stateNames[i]] = action;
         }
-        // Play first animation as idle if available
-        const firstAnim = Object.values(this.animations)[0];
-        if (firstAnim) {
-          firstAnim.play();
+        // Start with idle
+        if (this.animationActions.idle) {
+          this.animationActions.idle.play();
+          this.currentAction = this.animationActions.idle;
         }
       }
 
@@ -161,7 +164,17 @@ export class Robot {
           break;
       }
     } else {
-      // For loaded models, adjust emissive intensity on all materials
+      // Crossfade to the matching animation
+      const nextAction = this.animationActions[state];
+      if (nextAction && nextAction !== this.currentAction) {
+        if (this.currentAction) {
+          this.currentAction.fadeOut(0.3);
+        }
+        nextAction.reset().fadeIn(0.3).play();
+        this.currentAction = nextAction;
+      }
+
+      // Adjust emissive intensity on all materials
       this.group.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           const mesh = child as THREE.Mesh;
