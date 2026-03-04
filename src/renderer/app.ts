@@ -57,9 +57,12 @@ for (const [id, config] of Object.entries(AGENT_MAP)) {
   // Load GLB model (falls back to placeholder on failure)
   robot.loadModel(config.modelPath);
 
-  const workstation = new Workstation(pos, config.color);
+  const workstation = new Workstation(config, pos);
   workstations.set(id, workstation);
   sceneManager.scene.add(workstation.group);
+
+  // Load workstation GLB model (falls back to placeholder on failure)
+  workstation.loadModel(config.workstationModelPath);
 }
 
 // Connect agent state changes to robots, workstations, and camera
