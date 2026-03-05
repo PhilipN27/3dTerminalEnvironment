@@ -68,7 +68,8 @@ export class TerminalMesh {
         emissiveIntensity: 0.3,
       })
     );
-    this.mesh.position.set(0, 3, 1);
+    // Mounted on back wall, facing forward
+    this.mesh.position.set(0, 4, -9.5);
 
     // Wire up I/O
     this.terminal.onData((data) => {

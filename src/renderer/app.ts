@@ -10,7 +10,6 @@ import { Workstation } from './agents/workstation';
 import { AGENT_MAP } from '../shared/agent-config';
 import { CameraPreset } from '../shared/types';
 import { Overlay } from './ui/overlay';
-import { CityBackdrop } from './scene/city-backdrop';
 
 // Scene
 const container = document.getElementById('scene-container')!;
@@ -20,9 +19,6 @@ const sceneManager = new SceneManager(container);
 const workshop = new Workshop();
 sceneManager.scene.add(workshop.group);
 
-// City backdrop
-const city = new CityBackdrop();
-sceneManager.scene.add(city.group);
 
 // Camera
 const cameraController = new CameraController(sceneManager.camera);
@@ -36,12 +32,14 @@ sceneManager.scene.add(terminalMesh.mesh);
 const agentManager = new AgentManager();
 
 const AGENT_POSITIONS: Record<string, THREE.Vector3> = {
-  'ui-architect': new THREE.Vector3(-10, 0, -5),
-  'backend-engineer': new THREE.Vector3(-6, 0, -5),
-  'test-writer': new THREE.Vector3(-2, 0, -5),
-  'trello-attacker': new THREE.Vector3(10, 0, -5),
-  'mobile-optimizer': new THREE.Vector3(6, 0, -5),
-  'qa-gatekeeper': new THREE.Vector3(2, 0, -5),
+  // Left wall (x=-13, facing right)
+  'ui-architect': new THREE.Vector3(-13, 0, -6),
+  'backend-engineer': new THREE.Vector3(-13, 0, 0),
+  'test-writer': new THREE.Vector3(-13, 0, 6),
+  // Right wall (x=13, facing left)
+  'trello-attacker': new THREE.Vector3(13, 0, -6),
+  'mobile-optimizer': new THREE.Vector3(13, 0, 0),
+  'qa-gatekeeper': new THREE.Vector3(13, 0, 6),
 };
 
 const robots = new Map<string, Robot>();
@@ -82,7 +80,6 @@ agentManager.onStateChange((agentId, state) => {
 sceneManager.onAnimate((delta) => {
   cameraController.update(delta);
   terminalMesh.update();
-  city.update(delta);
   for (const robot of robots.values()) {
     robot.update(delta);
   }

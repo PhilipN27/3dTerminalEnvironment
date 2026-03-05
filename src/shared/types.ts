@@ -18,7 +18,7 @@ export interface AgentState {
   state: 'idle' | 'active' | 'complete';
 }
 
-export type CameraPreset = 'overview' | 'terminal' | 'ui-architect' | 'backend-engineer' | 'test-writer' | 'trello-attacker' | 'mobile-optimizer' | 'qa-gatekeeper';
+export type CameraPreset = 'overview' | 'overview-corner' | 'terminal' | 'freeroam' | 'ui-architect' | 'backend-engineer' | 'test-writer' | 'trello-attacker' | 'mobile-optimizer' | 'qa-gatekeeper';
 
 export const IPC = {
   SHELL_OUTPUT: 'shell:output',

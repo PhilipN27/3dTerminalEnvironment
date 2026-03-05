@@ -16,13 +16,13 @@ export class SceneManager {
     this.scene.fog = new THREE.FogExp2(0x0a0a1a, 0.015);
 
     this.camera = new THREE.PerspectiveCamera(
-      60,
+      75,
       container.clientWidth / container.clientHeight,
       0.1,
       1000
     );
-    this.camera.position.set(0, 8, 15);
-    this.camera.lookAt(0, 2, 0);
+    this.camera.position.set(0, 7.5, 9);
+    this.camera.lookAt(0, 0, -4);
 
     this.renderer = new THREE.WebGLRenderer({
       antialias: false, // Disabled — postprocessing handles AA

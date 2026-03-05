@@ -6,50 +6,58 @@ interface CameraPosition {
   lookAt: THREE.Vector3;
 }
 
-const PRESETS: Record<CameraPreset, CameraPosition> = {
+const PRESETS: Record<Exclude<CameraPreset, 'freeroam'>, CameraPosition> = {
   'overview': {
-    position: new THREE.Vector3(0, 10, 18),
-    lookAt: new THREE.Vector3(0, 2, 0),
+    position: new THREE.Vector3(0, 7.5, 9),
+    lookAt: new THREE.Vector3(0, 0, -4),
+  },
+  'overview-corner': {
+    position: new THREE.Vector3(13, 7, 8),
+    lookAt: new THREE.Vector3(-5, 0, -5),
   },
   'terminal': {
-    position: new THREE.Vector3(0, 4, 6),
-    lookAt: new THREE.Vector3(0, 2.5, 2),
+    position: new THREE.Vector3(0, 4, -4),
+    lookAt: new THREE.Vector3(0, 3, -9.5),
   },
+  // Left wall agents
   'ui-architect': {
-    position: new THREE.Vector3(-10, 4, -2),
-    lookAt: new THREE.Vector3(-10, 2, -6),
+    position: new THREE.Vector3(-8, 4, -6),
+    lookAt: new THREE.Vector3(-13, 2, -6),
   },
   'backend-engineer': {
-    position: new THREE.Vector3(-6, 4, -2),
-    lookAt: new THREE.Vector3(-6, 2, -6),
+    position: new THREE.Vector3(-8, 4, 0),
+    lookAt: new THREE.Vector3(-13, 2, 0),
   },
   'test-writer': {
-    position: new THREE.Vector3(-2, 4, -2),
-    lookAt: new THREE.Vector3(-2, 2, -6),
+    position: new THREE.Vector3(-8, 4, 6),
+    lookAt: new THREE.Vector3(-13, 2, 6),
   },
+  // Right wall agents
   'trello-attacker': {
-    position: new THREE.Vector3(10, 4, -2),
-    lookAt: new THREE.Vector3(10, 2, -6),
+    position: new THREE.Vector3(8, 4, -6),
+    lookAt: new THREE.Vector3(13, 2, -6),
   },
   'mobile-optimizer': {
-    position: new THREE.Vector3(6, 4, -2),
-    lookAt: new THREE.Vector3(6, 2, -6),
+    position: new THREE.Vector3(8, 4, 0),
+    lookAt: new THREE.Vector3(13, 2, 0),
   },
   'qa-gatekeeper': {
-    position: new THREE.Vector3(2, 4, -2),
-    lookAt: new THREE.Vector3(2, 2, -6),
+    position: new THREE.Vector3(8, 4, 6),
+    lookAt: new THREE.Vector3(13, 2, 6),
   },
 };
 
 const HOTKEY_MAP: Record<string, CameraPreset> = {
   '1': 'overview',
-  '2': 'terminal',
-  '3': 'ui-architect',
-  '4': 'backend-engineer',
-  '5': 'test-writer',
-  '6': 'trello-attacker',
-  '7': 'mobile-optimizer',
-  '8': 'qa-gatekeeper',
+  '2': 'overview-corner',
+  '3': 'terminal',
+  '4': 'ui-architect',
+  '5': 'backend-engineer',
+  '6': 'test-writer',
+  '7': 'trello-attacker',
+  '8': 'mobile-optimizer',
+  '9': 'qa-gatekeeper',
+  '0': 'freeroam',
 };
 
 export class CameraController {
@@ -61,6 +69,15 @@ export class CameraController {
   private isTransitioning = false;
   private transitionSpeed = 3.0;
   autoFollow = false;
+
+  // Free roam state
+  private isFreeroam = false;
+  private yaw = 0;
+  private pitch = -0.3;
+  private moveSpeed = 8;
+  private lookSpeed = 0.002;
+  private keys = new Set<string>();
+  private isPointerLocked = false;
 
   constructor(camera: THREE.PerspectiveCamera) {
     this.camera = camera;
@@ -76,14 +93,80 @@ export class CameraController {
         this.autoFollow = !this.autoFollow;
         return;
       }
+
+      if (this.isFreeroam) {
+        this.keys.add(e.key.toLowerCase());
+        if (e.key === 'Escape') {
+          document.exitPointerLock();
+          return;
+        }
+      }
+
       const preset = HOTKEY_MAP[e.key];
       if (preset) {
-        this.goTo(preset);
+        if (preset === 'freeroam') {
+          this.enterFreeroam();
+        } else {
+          this.exitFreeroam();
+          this.goTo(preset);
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.key.toLowerCase());
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!this.isFreeroam || !this.isPointerLocked) return;
+      this.yaw -= e.movementX * this.lookSpeed;
+      this.pitch -= e.movementY * this.lookSpeed;
+      this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      this.isPointerLocked = !!document.pointerLockElement;
+      if (!this.isPointerLocked && this.isFreeroam) {
+        // Stay in freeroam but allow re-locking on click
+      }
+    });
+
+    window.addEventListener('click', () => {
+      if (this.isFreeroam && !this.isPointerLocked) {
+        document.body.requestPointerLock();
       }
     });
   }
 
+  private enterFreeroam() {
+    this.isFreeroam = true;
+    this.isTransitioning = false;
+    this.currentPreset = 'freeroam';
+
+    // Calculate current yaw/pitch from camera direction
+    const dir = new THREE.Vector3();
+    this.camera.getWorldDirection(dir);
+    this.yaw = Math.atan2(-dir.x, -dir.z);
+    this.pitch = Math.asin(dir.y);
+
+    document.body.requestPointerLock();
+  }
+
+  private exitFreeroam() {
+    this.isFreeroam = false;
+    this.isPointerLocked = false;
+    this.keys.clear();
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+  }
+
   goTo(preset: CameraPreset) {
+    if (preset === 'freeroam') {
+      this.enterFreeroam();
+      return;
+    }
+    this.exitFreeroam();
     this.currentPreset = preset;
     const target = PRESETS[preset];
     this.targetPosition.copy(target.position);
@@ -96,6 +179,11 @@ export class CameraController {
   }
 
   update(delta: number) {
+    if (this.isFreeroam) {
+      this.updateFreeroam(delta);
+      return;
+    }
+
     if (!this.isTransitioning) return;
 
     const lerpFactor = 1 - Math.exp(-this.transitionSpeed * delta);
@@ -110,5 +198,28 @@ export class CameraController {
       this.camera.lookAt(this.currentLookAt);
       this.isTransitioning = false;
     }
+  }
+
+  private updateFreeroam(delta: number) {
+    // Look direction from yaw/pitch
+    const forward = new THREE.Vector3(
+      -Math.sin(this.yaw) * Math.cos(this.pitch),
+      Math.sin(this.pitch),
+      -Math.cos(this.yaw) * Math.cos(this.pitch),
+    );
+    const right = new THREE.Vector3(-Math.cos(this.yaw), 0, Math.sin(this.yaw));
+
+    const speed = this.moveSpeed * delta;
+
+    if (this.keys.has('w')) this.camera.position.addScaledVector(forward, speed);
+    if (this.keys.has('s')) this.camera.position.addScaledVector(forward, -speed);
+    if (this.keys.has('a')) this.camera.position.addScaledVector(right, -speed);
+    if (this.keys.has('d')) this.camera.position.addScaledVector(right, speed);
+    if (this.keys.has(' ')) this.camera.position.y += speed;
+    if (this.keys.has('shift')) this.camera.position.y -= speed;
+
+    const lookTarget = this.camera.position.clone().add(forward);
+    this.camera.lookAt(lookTarget);
+    this.currentLookAt.copy(lookTarget);
   }
 }
