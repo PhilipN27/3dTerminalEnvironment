@@ -10,6 +10,8 @@ import { Workstation } from './agents/workstation';
 import { AGENT_MAP } from '../shared/agent-config';
 import { CameraPreset } from '../shared/types';
 import { Overlay } from './ui/overlay';
+import { EditorMode } from './editor/editor-mode';
+import './editor/editor-entry';
 
 // Scene
 const container = document.getElementById('scene-container')!;
@@ -76,13 +78,20 @@ agentManager.onStateChange((agentId, state) => {
   }
 });
 
+// Editor Mode
+const editorMode = new EditorMode(sceneManager.scene, sceneManager.camera, sceneManager.renderer.domElement);
+editorMode.loadLayout();
+
 // Animation loop
 sceneManager.onAnimate((delta) => {
-  cameraController.update(delta);
+  if (!editorMode.isActive()) {
+    cameraController.update(delta);
+  }
   terminalMesh.update();
   for (const robot of robots.values()) {
     robot.update(delta);
   }
+  editorMode.update(delta);
 });
 
 // Auto-focus terminal

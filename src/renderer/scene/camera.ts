@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CameraPreset } from '../../shared/types';
+import { editorBridge } from '../editor/editor-bridge';
 
 interface CameraPosition {
   position: THREE.Vector3;
@@ -88,6 +89,9 @@ export class CameraController {
     this.camera.position.copy(preset.position);
 
     window.addEventListener('keydown', (e) => {
+      // Disable camera hotkeys when editor is active
+      if (editorBridge.active) return;
+
       if (e.key === 'Tab') {
         e.preventDefault();
         this.autoFollow = !this.autoFollow;

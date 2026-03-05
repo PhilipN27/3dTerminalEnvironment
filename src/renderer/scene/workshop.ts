@@ -19,6 +19,7 @@ export class Workshop {
     this.loadFloorPanels();
     this.loadWallPanels();
     this.loadCeilingPanels();
+    this.loadCeilingLights();
   }
 
   // --- GLB panel loaders ---
@@ -203,6 +204,100 @@ export class Workshop {
       console.log(`Tiled ${cols * rows} ceiling panels`);
     } catch (e) {
       console.warn('Failed to load ceiling-panel GLB, keeping fallback:', e);
+    }
+  }
+
+  private async loadCeilingLights() {
+    // Load both fixture types
+    const [stripResult, cageResult] = await Promise.allSettled([
+      this.loader.loadAsync('/models/room/ceiling-strip-light.glb'),
+      this.loader.loadAsync('/models/room/ceiling-cage-light.glb'),
+    ]);
+
+    // --- Strip lights: 2 rows running along the room length ---
+    if (stripResult.status === 'fulfilled') {
+      const template = stripResult.value.scene;
+      const box = new THREE.Box3().setFromObject(template);
+      const size = box.getSize(new THREE.Vector3());
+      const targetLength = 4;
+      const scale = targetLength / Math.max(size.x, size.z);
+      template.scale.setScalar(scale);
+
+      const scaledBox = new THREE.Box3().setFromObject(template);
+      const center = scaledBox.getCenter(new THREE.Vector3());
+      template.position.sub(center);
+      template.rotation.x = Math.PI; // face downward flush against ceiling
+
+      // Two rows of strip lights at x = -7 and x = 7
+      const stripPositionsZ = [-7.5, -2.5, 2.5, 7.5];
+      const stripRows = [-7, 7];
+
+      for (const x of stripRows) {
+        for (const z of stripPositionsZ) {
+          const light = template.clone();
+          light.position.set(x, ROOM_HEIGHT, z);
+          this.group.add(light);
+        }
+      }
+
+      // Only 2 point lights for the strip rows (one per row, centered)
+      for (const x of stripRows) {
+        const pointLight = new THREE.PointLight(0xccddff, 3, 25);
+        pointLight.position.set(x, ROOM_HEIGHT - 1, 0);
+        this.group.add(pointLight);
+      }
+      console.log(`Placed ${stripRows.length * stripPositionsZ.length} strip lights, 2 point lights`);
+    } else {
+      console.warn('Failed to load strip light GLB:', stripResult.reason);
+    }
+
+    // --- Cage lights: above each workstation and center ---
+    if (cageResult.status === 'fulfilled') {
+      const template = cageResult.value.scene;
+      const box = new THREE.Box3().setFromObject(template);
+      const size = box.getSize(new THREE.Vector3());
+      const targetSize = 1.5;
+      const scale = targetSize / Math.max(size.x, size.y, size.z);
+      template.scale.setScalar(scale);
+
+      const scaledBox = new THREE.Box3().setFromObject(template);
+      const center = scaledBox.getCenter(new THREE.Vector3());
+      template.position.sub(center);
+      template.rotation.x = Math.PI; // face downward flush against ceiling
+
+      // Place above each agent workstation + center terminal
+      const cagePositions = [
+        { x: -13, z: -6 },  // ui-architect
+        { x: -13, z: 0 },   // backend-engineer
+        { x: -13, z: 6 },   // test-writer
+        { x: 13, z: -6 },   // trello-attacker
+        { x: 13, z: 0 },    // mobile-optimizer
+        { x: 13, z: 6 },    // qa-gatekeeper
+        { x: 0, z: -8 },    // terminal area
+        { x: 0, z: 0 },     // room center
+      ];
+
+      for (const pos of cagePositions) {
+        const cage = template.clone();
+        cage.position.set(pos.x, ROOM_HEIGHT, pos.z);
+        this.group.add(cage);
+      }
+
+      // Only 4 point lights for cage areas (left wall, right wall, terminal, center)
+      const cageLightPositions = [
+        { x: -13, z: 0 },   // left wall center
+        { x: 13, z: 0 },    // right wall center
+        { x: 0, z: -8 },    // terminal
+        { x: 0, z: 0 },     // room center
+      ];
+      for (const pos of cageLightPositions) {
+        const pointLight = new THREE.PointLight(0xffcc88, 3, 18);
+        pointLight.position.set(pos.x, ROOM_HEIGHT - 1.5, pos.z);
+        this.group.add(pointLight);
+      }
+      console.log(`Placed ${cagePositions.length} cage lights, 4 point lights`);
+    } else {
+      console.warn('Failed to load cage light GLB:', cageResult.reason);
     }
   }
 
