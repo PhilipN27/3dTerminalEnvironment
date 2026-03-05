@@ -9,6 +9,7 @@ export class SceneManager {
   private lastTime = 0;
   private composer: EffectComposer;
   private animationCallbacks: ((delta: number) => void)[] = [];
+  private frameInterval = 1000 / 60;
 
   constructor(container: HTMLElement) {
     this.scene = new THREE.Scene();
@@ -81,8 +82,10 @@ export class SceneManager {
   private animate() {
     requestAnimationFrame(() => this.animate());
     const now = performance.now();
-    const delta = (now - this.lastTime) / 1000;
-    this.lastTime = now;
+    const elapsed = now - this.lastTime;
+    if (elapsed < this.frameInterval) return;
+    this.lastTime = now - (elapsed % this.frameInterval);
+    const delta = elapsed / 1000;
     for (const cb of this.animationCallbacks) {
       cb(delta);
     }

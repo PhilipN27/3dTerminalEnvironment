@@ -68,8 +68,8 @@ export class EditorMode {
 
     // Input listeners
     this.domElement.addEventListener('pointerdown', (e) => this.onPointerDown(e));
-    window.addEventListener('keydown', (e) => this.onKeyDown(e));
-    window.addEventListener('keyup', (e) => this.onKeyUp(e));
+    document.addEventListener('keydown', (e) => this.onKeyDown(e), true);
+    document.addEventListener('keyup', (e) => this.onKeyUp(e), true);
   }
 
   toggle() {
@@ -84,10 +84,10 @@ export class EditorMode {
 
     // Toggle HUD visibility
     const hud = document.getElementById('hud-overlay');
-    if (hud) hud.style.display = this.active ? 'none' : '';
+    if (hud) hud.style.display = this.active ? 'none' : 'block';
 
     const editorRoot = document.getElementById('editor-root');
-    if (editorRoot) editorRoot.style.display = this.active ? '' : 'none';
+    if (editorRoot) editorRoot.style.display = this.active ? 'block' : 'none';
   }
 
   isActive() {
@@ -207,13 +207,24 @@ export class EditorMode {
   // --- Keyboard ---
 
   private onKeyDown(e: KeyboardEvent) {
-    // Toggle editor with E (but not when typing in inputs)
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    const target = e.target as HTMLElement;
+    const isEditorInput = (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)
+      && !!target.closest('#editor-root');
 
-    if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.shiftKey) {
+    // Toggle editor with E (works even when terminal is focused, but not in editor inputs)
+    if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.shiftKey && !isEditorInput) {
       this.toggle();
       return;
     }
+
+    // Escape deselects (works even when terminal is focused)
+    if (e.key === 'Escape' && this.active) {
+      this.deselectObject();
+      return;
+    }
+
+    // Skip other shortcuts when typing in any input/textarea
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
 
     if (!this.active) return;
 
