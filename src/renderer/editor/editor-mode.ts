@@ -144,6 +144,7 @@ export class EditorMode {
 
   private onPointerDown(e: PointerEvent) {
     if (!this.active) return;
+    if (e.button !== 0) return; // right-click reserved for camera fly
 
     // Don't raycast if clicking on UI or transform gizmo
     if (this.transformControls.dragging) return;

@@ -73,6 +73,7 @@ export class CameraController {
 
   // Free roam state
   private isFreeroam = false;
+  private isEditorFly = false;
   private yaw = 0;
   private pitch = -0.3;
   private moveSpeed = 8;
@@ -89,21 +90,22 @@ export class CameraController {
     this.camera.position.copy(preset.position);
 
     window.addEventListener('keydown', (e) => {
-      // Disable camera hotkeys when editor is active
+      // Track movement keys for freeroam and editor fly
+      if (this.isFreeroam || this.isEditorFly) {
+        this.keys.add(e.key.toLowerCase());
+        if (e.key === 'Escape' && this.isFreeroam) {
+          document.exitPointerLock();
+          return;
+        }
+      }
+
+      // All other camera hotkeys are blocked when editor is active
       if (editorBridge.active) return;
 
       if (e.key === 'Tab') {
         e.preventDefault();
         this.autoFollow = !this.autoFollow;
         return;
-      }
-
-      if (this.isFreeroam) {
-        this.keys.add(e.key.toLowerCase());
-        if (e.key === 'Escape') {
-          document.exitPointerLock();
-          return;
-        }
       }
 
       const preset = HOTKEY_MAP[e.key];
@@ -122,17 +124,39 @@ export class CameraController {
     });
 
     window.addEventListener('mousemove', (e) => {
-      if (!this.isFreeroam || !this.isPointerLocked || editorBridge.active) return;
+      if (this.isEditorFly) {
+        // Editor fly: movementX/Y works without pointer lock
+        this.yaw -= e.movementX * this.lookSpeed;
+        this.pitch -= e.movementY * this.lookSpeed;
+        this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
+        return;
+      }
+      if (!this.isFreeroam || !this.isPointerLocked) return;
       this.yaw -= e.movementX * this.lookSpeed;
       this.pitch -= e.movementY * this.lookSpeed;
       this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
     });
 
+    // Right-click hold = fly cam in editor mode
+    window.addEventListener('mousedown', (e) => {
+      if (e.button === 2 && editorBridge.active) {
+        this.startEditorFly();
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 2 && this.isEditorFly) {
+        this.stopEditorFly();
+      }
+    });
+
+    // Suppress context menu while editor is active (right-click is used for fly cam)
+    window.addEventListener('contextmenu', (e) => {
+      if (editorBridge.active) e.preventDefault();
+    });
+
     document.addEventListener('pointerlockchange', () => {
       this.isPointerLocked = !!document.pointerLockElement;
-      if (!this.isPointerLocked && this.isFreeroam) {
-        // Stay in freeroam but allow re-locking on click
-      }
     });
 
     window.addEventListener('click', () => {
@@ -140,6 +164,19 @@ export class CameraController {
         document.body.requestPointerLock();
       }
     });
+  }
+
+  private startEditorFly() {
+    this.isEditorFly = true;
+    const dir = new THREE.Vector3();
+    this.camera.getWorldDirection(dir);
+    this.yaw = Math.atan2(-dir.x, -dir.z);
+    this.pitch = Math.asin(Math.max(-1, Math.min(1, dir.y)));
+  }
+
+  private stopEditorFly() {
+    this.isEditorFly = false;
+    this.keys.clear();
   }
 
   private enterFreeroam() {
@@ -183,7 +220,7 @@ export class CameraController {
   }
 
   update(delta: number) {
-    if (this.isFreeroam) {
+    if (this.isFreeroam || this.isEditorFly) {
       this.updateFreeroam(delta);
       return;
     }
