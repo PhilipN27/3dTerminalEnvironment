@@ -36,7 +36,7 @@ export class EditorMode {
   private active = false;
   private selectedObject: THREE.Object3D | null = null;
   private editorObjects: THREE.Object3D[] = [];
-  private originalEmissives = new Map<THREE.Mesh, THREE.Color>();
+  private originalMaterials = new Map<THREE.Mesh, THREE.Material>();
   private gizmoVisible = false;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
@@ -181,14 +181,16 @@ export class EditorMode {
     this.deselectObject();
     this.selectedObject = obj;
 
-    // Highlight: boost emissive
+    // Highlight: clone material and boost emissive (so shared materials aren't affected)
     obj.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (mesh.isMesh && mesh.material) {
         const mat = mesh.material as THREE.MeshStandardMaterial;
         if (mat.emissive) {
-          this.originalEmissives.set(mesh, mat.emissive.clone());
-          mat.emissive.set(0x335577);
+          this.originalMaterials.set(mesh, mat);
+          const cloned = mat.clone();
+          cloned.emissive.set(0x335577);
+          mesh.material = cloned;
         }
       }
     });
@@ -204,12 +206,11 @@ export class EditorMode {
   private deselectObject() {
     if (!this.selectedObject) return;
 
-    // Restore emissive
-    this.originalEmissives.forEach((original, mesh) => {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (mat.emissive) mat.emissive.copy(original);
+    // Restore original shared materials
+    this.originalMaterials.forEach((originalMat, mesh) => {
+      mesh.material = originalMat;
     });
-    this.originalEmissives.clear();
+    this.originalMaterials.clear();
 
     this.transformControls.detach();
     this.setGizmoVisible(false);
