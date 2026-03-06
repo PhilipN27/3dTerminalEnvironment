@@ -129,12 +129,35 @@ export class EditorMode {
     const intersects = this.raycaster.intersectObjects(intersectables, false);
 
     if (intersects.length > 0) {
-      // Find the top-level group or object
+      // Walk up from the hit mesh to find the nearest selectable ancestor
       let obj = intersects[0].object;
-      while (obj.parent && obj.parent !== this.scene) {
-        obj = obj.parent;
+      let selectable: THREE.Object3D | null = null;
+
+      // Check the hit object itself and each ancestor
+      let current: THREE.Object3D | null = obj;
+      while (current && current !== this.scene) {
+        if (current.userData.selectable === true) {
+          selectable = current;
+          break;
+        }
+        current = current.parent;
       }
-      this.selectObject(obj);
+
+      // Fallback: if no selectable tag found, use top-level scene child (for spawned/editor objects)
+      if (!selectable) {
+        let fallback = obj;
+        while (fallback.parent && fallback.parent !== this.scene) {
+          fallback = fallback.parent;
+        }
+        // Only select if not explicitly marked non-selectable
+        if (fallback.userData.selectable !== false) {
+          selectable = fallback;
+        }
+      }
+
+      if (selectable) {
+        this.selectObject(selectable);
+      }
     } else {
       this.deselectObject();
     }
@@ -150,7 +173,10 @@ export class EditorMode {
   }
 
   private selectObject(obj: THREE.Object3D) {
-    if (this.selectedObject === obj) return;
+    if (this.selectedObject === obj) {
+      this.deselectObject();
+      return;
+    }
 
     this.deselectObject();
     this.selectedObject = obj;
@@ -275,6 +301,7 @@ export class EditorMode {
 
       // Tag as editor-managed
       obj.userData.editorManaged = true;
+      obj.userData.selectable = true;
       obj.userData.modelPath = modelPath;
       obj.name = modelPath.split('/').pop()?.replace('.glb', '') || 'object';
 

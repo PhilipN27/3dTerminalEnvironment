@@ -66,7 +66,7 @@ export function TerminalEditor() {
   if (!editorMode) return null;
 
   return (
-    <div className="w-full h-full relative font-mono select-none overflow-hidden">
+    <div className="w-full h-full relative font-mono select-none overflow-hidden pointer-events-none">
       <TopToolbar onSave={handleSave} />
       <div className="absolute inset-0 pt-[64px] pointer-events-none">
         <SpawnMenuPanel activeTab={activeTab} setActiveTab={setActiveTab} />

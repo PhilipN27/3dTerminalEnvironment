@@ -12,6 +12,7 @@ export class Workshop {
 
   constructor() {
     this.group = new THREE.Group();
+    this.group.userData.selectable = false;
     this.buildFloorFallback();
     this.buildWallsFallback();
     this.buildCeilingFallback();
@@ -63,6 +64,8 @@ export class Workshop {
             0,
             startZ + row * PANEL_SIZE,
           );
+          panel.userData.selectable = true;
+          panel.name = `floor-panel-${col}-${row}`;
           this.group.add(panel);
         }
       }
@@ -112,6 +115,7 @@ export class Workshop {
       }
     });
 
+    tile.userData.selectable = true;
     return tile;
   }
 
@@ -130,12 +134,15 @@ export class Workshop {
         cols: number,
         getPosition: (col: number, row: number) => THREE.Vector3,
         rotationY: number,
+        wallName: string,
       ) => {
         for (let col = 0; col < cols; col++) {
           for (let row = 0; row < vRows; row++) {
             const tile = tileTemplate.clone();
             tile.position.copy(getPosition(col, row));
             tile.rotation.y = rotationY;
+            tile.userData.selectable = true;
+            tile.name = `${wallName}-panel-${col}-${row}`;
             this.group.add(tile);
           }
         }
@@ -146,28 +153,28 @@ export class Workshop {
         -ROOM_WIDTH / 2 + PANEL_SIZE / 2 + col * PANEL_SIZE,
         wallRowHeight / 2 + row * wallRowHeight,
         -ROOM_DEPTH / 2,
-      ), 0);
+      ), 0, 'back-wall');
 
       // Left wall (x = -ROOM_WIDTH/2)
       placeWall(dCols, (col, row) => new THREE.Vector3(
         -ROOM_WIDTH / 2,
         wallRowHeight / 2 + row * wallRowHeight,
         -ROOM_DEPTH / 2 + PANEL_SIZE / 2 + col * PANEL_SIZE,
-      ), Math.PI / 2);
+      ), Math.PI / 2, 'left-wall');
 
       // Right wall (x = ROOM_WIDTH/2)
       placeWall(dCols, (col, row) => new THREE.Vector3(
         ROOM_WIDTH / 2,
         wallRowHeight / 2 + row * wallRowHeight,
         -ROOM_DEPTH / 2 + PANEL_SIZE / 2 + col * PANEL_SIZE,
-      ), -Math.PI / 2);
+      ), -Math.PI / 2, 'right-wall');
 
       // Front wall (z = ROOM_DEPTH/2)
       placeWall(hCols, (col, row) => new THREE.Vector3(
         -ROOM_WIDTH / 2 + PANEL_SIZE / 2 + col * PANEL_SIZE,
         wallRowHeight / 2 + row * wallRowHeight,
         ROOM_DEPTH / 2,
-      ), Math.PI);
+      ), Math.PI, 'front-wall');
 
       this.removeFallback('walls');
       const total = (hCols * 2 + dCols * 2) * vRows;
@@ -196,6 +203,8 @@ export class Workshop {
             startZ + row * PANEL_SIZE,
           );
           panel.rotation.x = Math.PI;
+          panel.userData.selectable = true;
+          panel.name = `ceiling-panel-${col}-${row}`;
           this.group.add(panel);
         }
       }
@@ -236,6 +245,8 @@ export class Workshop {
         for (const z of stripPositionsZ) {
           const light = template.clone();
           light.position.set(x, ROOM_HEIGHT, z);
+          light.userData.selectable = true;
+          light.name = `strip-light-${x}-${z}`;
           this.group.add(light);
         }
       }
@@ -280,6 +291,8 @@ export class Workshop {
       for (const pos of cagePositions) {
         const cage = template.clone();
         cage.position.set(pos.x, ROOM_HEIGHT, pos.z);
+        cage.userData.selectable = true;
+        cage.name = `cage-light-${pos.x}-${pos.z}`;
         this.group.add(cage);
       }
 
