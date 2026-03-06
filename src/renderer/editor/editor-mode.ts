@@ -21,7 +21,11 @@ const AVAILABLE_MODELS: SpawnableModel[] = [
   { name: 'QA Gatekeeper WS', path: '/models/workstations/qa-gatekeeper-ws.glb', category: 'Props' },
 ];
 
-const SNAP_INCREMENT = 0.5;
+const GRID_SIZE = 200;
+const GRID_DIVISIONS = 200; // 1-unit spacing
+const GRID_SNAP = 1.0;
+const ROTATION_SNAP = 15; // degrees
+const SCALE_SNAP = 0.1;
 
 export class EditorMode {
   private scene: THREE.Scene;
@@ -38,6 +42,8 @@ export class EditorMode {
   private editorObjects: THREE.Object3D[] = [];
   private originalMaterials = new Map<THREE.Mesh, THREE.Material>();
   private gizmoVisible = false;
+  private gridHelper: THREE.GridHelper;
+  private gridEnabled = false;
 
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, domElement: HTMLElement) {
     this.scene = scene;
@@ -56,6 +62,14 @@ export class EditorMode {
       this.reportTransform();
     });
 
+    // Snap grid (hidden by default)
+    this.gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS, 0x64C8FF, 0x64C8FF);
+    this.gridHelper.position.y = 0.02; // slightly above floor to avoid z-fighting
+    (this.gridHelper.material as THREE.Material).opacity = 0;
+    (this.gridHelper.material as THREE.Material).transparent = true;
+    this.gridHelper.visible = false;
+    this.scene.add(this.gridHelper);
+
     // Publish available models to bridge
     editorBridge.availableModels = AVAILABLE_MODELS;
 
@@ -65,6 +79,7 @@ export class EditorMode {
     editorBridge.on('delete-request', () => this.deleteSelected());
     editorBridge.on('save-request', () => this.saveLayout());
     editorBridge.on('deselect-request', () => this.deselectObject());
+    editorBridge.on('grid-toggled', ({ enabled }) => this.setGridEnabled(enabled));
 
     // Input listeners
     this.domElement.addEventListener('pointerdown', (e) => this.onPointerDown(e));
@@ -76,7 +91,13 @@ export class EditorMode {
     this.active = !this.active;
     editorBridge.setActive(this.active);
 
-    if (!this.active) {
+    if (this.active) {
+      // Entering editor: release pointer lock so mouse works for UI/selection
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    } else {
+      // Exiting editor: clean up selection and gizmo
       this.deselectObject();
       this.setGizmoVisible(false);
       this.transformControls.enabled = false;
@@ -103,6 +124,22 @@ export class EditorMode {
     this.gizmoHelper.visible = v;
   }
 
+  private setGridEnabled(enabled: boolean) {
+    this.gridEnabled = enabled;
+    this.gridHelper.visible = enabled;
+    (this.gridHelper.material as THREE.Material).opacity = enabled ? 0.15 : 0;
+
+    if (enabled) {
+      this.transformControls.setTranslationSnap(GRID_SNAP);
+      this.transformControls.setRotationSnap(THREE.MathUtils.degToRad(ROTATION_SNAP));
+      this.transformControls.setScaleSnap(SCALE_SNAP);
+    } else {
+      this.transformControls.setTranslationSnap(null);
+      this.transformControls.setRotationSnap(null);
+      this.transformControls.setScaleSnap(null);
+    }
+  }
+
   // --- Selection ---
 
   private onPointerDown(e: PointerEvent) {
@@ -118,10 +155,10 @@ export class EditorMode {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    // Collect all meshes in scene (excluding transform gizmo helper)
+    // Collect all meshes in scene (excluding transform gizmo and grid)
     const intersectables: THREE.Object3D[] = [];
     this.scene.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh && !this.isGizmoChild(child)) {
+      if ((child as THREE.Mesh).isMesh && !this.isGizmoChild(child) && !this.isGridChild(child)) {
         intersectables.push(child);
       }
     });
@@ -167,6 +204,15 @@ export class EditorMode {
     let current: THREE.Object3D | null = obj;
     while (current) {
       if (current === this.gizmoHelper) return true;
+      current = current.parent;
+    }
+    return false;
+  }
+
+  private isGridChild(obj: THREE.Object3D): boolean {
+    let current: THREE.Object3D | null = obj;
+    while (current) {
+      if (current === this.gridHelper) return true;
       current = current.parent;
     }
     return false;
@@ -257,7 +303,12 @@ export class EditorMode {
 
     switch (e.key.toLowerCase()) {
       case 'g':
-        editorBridge.selectTool('Move');
+        if (e.ctrlKey) {
+          e.preventDefault();
+          editorBridge.toggleGrid();
+        } else {
+          editorBridge.selectTool('Move');
+        }
         break;
       case 'r':
         editorBridge.selectTool('Rotate');
@@ -278,15 +329,18 @@ export class EditorMode {
         this.deselectObject();
         break;
       case 'control':
-        this.transformControls.setTranslationSnap(SNAP_INCREMENT);
-        this.transformControls.setRotationSnap(THREE.MathUtils.degToRad(15));
-        this.transformControls.setScaleSnap(0.1);
+        // Temporary fine-snap when holding Ctrl (only if grid isn't already snapping)
+        if (!this.gridEnabled) {
+          this.transformControls.setTranslationSnap(0.5);
+          this.transformControls.setRotationSnap(THREE.MathUtils.degToRad(15));
+          this.transformControls.setScaleSnap(0.1);
+        }
         break;
     }
   }
 
   private onKeyUp(e: KeyboardEvent) {
-    if (e.key === 'Control') {
+    if (e.key === 'Control' && !this.gridEnabled) {
       this.transformControls.setTranslationSnap(null);
       this.transformControls.setRotationSnap(null);
       this.transformControls.setScaleSnap(null);

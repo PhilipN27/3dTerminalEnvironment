@@ -18,6 +18,7 @@ export function TerminalEditor() {
   const [selectedModel, setSelectedModel] = useState("");
   const [transform, setTransform] = useState<TransformData>(DEFAULT_TRANSFORM);
   const [editorMode, setEditorMode] = useState(false);
+  const [gridEnabled, setGridEnabled] = useState(false);
 
   useEffect(() => {
     const onModeChanged = ({ active }: { active: boolean }) => {
@@ -42,16 +43,22 @@ export function TerminalEditor() {
       setTransform({ ...t });
     };
 
+    const onGridToggled = ({ enabled }: { enabled: boolean }) => {
+      setGridEnabled(enabled);
+    };
+
     editorBridge.on('mode-changed', onModeChanged);
     editorBridge.on('tool-changed', onToolChanged);
     editorBridge.on('object-selected', onObjectSelected);
     editorBridge.on('transform-changed', onTransformChanged);
+    editorBridge.on('grid-toggled', onGridToggled);
 
     return () => {
       editorBridge.off('mode-changed', onModeChanged);
       editorBridge.off('tool-changed', onToolChanged);
       editorBridge.off('object-selected', onObjectSelected);
       editorBridge.off('transform-changed', onTransformChanged);
+      editorBridge.off('grid-toggled', onGridToggled);
     };
   }, []);
 
@@ -70,7 +77,7 @@ export function TerminalEditor() {
       <TopToolbar onSave={handleSave} />
       <div className="absolute inset-0 pt-[64px] pointer-events-none">
         <SpawnMenuPanel activeTab={activeTab} setActiveTab={setActiveTab} />
-        <HUDPanel activeTool={activeTool} setActiveTool={handleSetActiveTool} transform={transform} setTransform={setTransform} />
+        <HUDPanel activeTool={activeTool} setActiveTool={handleSetActiveTool} transform={transform} setTransform={setTransform} gridEnabled={gridEnabled} />
         <PropertiesPanel selectedModel={selectedModel} transform={transform} setTransform={setTransform} />
       </div>
       <BottomInfo />

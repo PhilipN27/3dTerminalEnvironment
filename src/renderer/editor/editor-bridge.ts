@@ -22,6 +22,7 @@ type EditorEventMap = {
   'tool-changed': { tool: EditorTool };
   'object-selected': { object: SelectedObjectInfo | null };
   'transform-changed': { transform: TransformData };
+  'grid-toggled': { enabled: boolean };
   'spawn-request': { modelPath: string };
   'delete-request': {};
   'save-request': {};
@@ -34,6 +35,7 @@ type EditorEventCallback<T extends EditorEventType> = (data: EditorEventMap[T]) 
 class EditorBridge {
   active = false;
   activeTool: EditorTool = 'Move';
+  gridEnabled = false;
   selectedObject: SelectedObjectInfo | null = null;
   availableModels: SpawnableModel[] = [];
 
@@ -75,6 +77,11 @@ class EditorBridge {
 
   deselect() {
     this.emit('deselect-request', {});
+  }
+
+  toggleGrid() {
+    this.gridEnabled = !this.gridEnabled;
+    this.emit('grid-toggled', { enabled: this.gridEnabled });
   }
 
   // --- Three.js → React ---

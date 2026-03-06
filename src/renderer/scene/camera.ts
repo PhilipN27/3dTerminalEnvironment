@@ -122,7 +122,7 @@ export class CameraController {
     });
 
     window.addEventListener('mousemove', (e) => {
-      if (!this.isFreeroam || !this.isPointerLocked) return;
+      if (!this.isFreeroam || !this.isPointerLocked || editorBridge.active) return;
       this.yaw -= e.movementX * this.lookSpeed;
       this.pitch -= e.movementY * this.lookSpeed;
       this.pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, this.pitch));
@@ -136,7 +136,7 @@ export class CameraController {
     });
 
     window.addEventListener('click', () => {
-      if (this.isFreeroam && !this.isPointerLocked) {
+      if (this.isFreeroam && !this.isPointerLocked && !editorBridge.active) {
         document.body.requestPointerLock();
       }
     });

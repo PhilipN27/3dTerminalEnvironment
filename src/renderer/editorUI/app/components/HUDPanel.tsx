@@ -1,15 +1,17 @@
-import { Move, RotateCw, Maximize } from "lucide-react";
-import { TransformData } from "../../../editor/editor-bridge";
+import { Move, RotateCw, Maximize, Grid3x3 } from "lucide-react";
+import { TransformData, editorBridge } from "../../../editor/editor-bridge";
 
 export function HUDPanel({
   activeTool,
   setActiveTool,
   transform,
+  gridEnabled,
 }: {
   activeTool: string,
   setActiveTool: (t: string) => void,
   transform: TransformData,
-  setTransform: (t: TransformData) => void
+  setTransform: (t: TransformData) => void,
+  gridEnabled: boolean,
 }) {
 
   const tools = [
@@ -41,6 +43,20 @@ export function HUDPanel({
               </span>
             </button>
           ))}
+          <div className="w-px bg-[#64C8FF]/30 mx-1" />
+          <button
+            onClick={() => editorBridge.toggleGrid()}
+            className={`flex flex-col items-center justify-center min-w-[50px] h-[50px] rounded transition-all ${
+              gridEnabled
+                ? "bg-[rgba(100,200,255,0.2)] border border-[#64C8FF] shadow-[0_0_10px_rgba(100,200,255,0.3)]"
+                : "bg-[#0A0F1E] border border-[#64C8FF]/30 hover:border-[#64C8FF] hover:bg-[#64C8FF]/10"
+            }`}
+          >
+            <Grid3x3 className={`w-5 h-5 ${gridEnabled ? "text-[#64C8FF]" : "text-[#64C8FF]/50"}`} />
+            <span className={`text-[10px] mt-1 ${gridEnabled ? "text-[#64C8FF]" : "text-[#C0D0E0]"}`}>
+              Grid
+            </span>
+          </button>
         </div>
       </div>
 

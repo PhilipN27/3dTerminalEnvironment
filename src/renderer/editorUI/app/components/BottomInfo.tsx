@@ -13,6 +13,10 @@ export function BottomInfo() {
           Gizmo
         </span>
         <span className="flex items-center gap-1">
+          <kbd className="bg-[#64C8FF]/20 px-1.5 py-0.5 rounded border border-[#64C8FF]/30 text-[#64C8FF]">Ctrl+G</kbd>
+          Grid
+        </span>
+        <span className="flex items-center gap-1">
           <kbd className="bg-[#64C8FF]/20 px-1.5 py-0.5 rounded border border-[#64C8FF]/30 text-[#64C8FF]">Esc</kbd>
           Deselect
         </span>
